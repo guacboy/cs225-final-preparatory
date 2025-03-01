@@ -3,6 +3,7 @@ import random
 
 BG_COLOR = "#222222"
 OPTION_COLOR = "#2c2c2c"
+HOVER_COLOR = "#535353"
 
 root = Tk()
 root.geometry("600x600")
@@ -34,22 +35,34 @@ def app() -> None:
     fail_button = Button(choice_frame,
                          bg=OPTION_COLOR,
                          fg="#d02121",
+                         activebackground=HOVER_COLOR,
+                         activeforeground="#d02121",
                          font=("Arial", 25),
                          padx=30,
                          pady=10,
                          text="✖",
-                         command="",)
+                         command=lambda:print("fail"),)
+    fail_button.bind("<Enter>", func=lambda e: on_button_hover(fail_button))
+    fail_button.bind("<Leave>", func=lambda e: on_button_hover(fail_button))
     fail_button.pack(side=LEFT,
                      padx=(0, 50))
     pass_button = Button(choice_frame,
                          bg=OPTION_COLOR,
                          fg="#31f75b",
+                         activebackground=HOVER_COLOR,
+                         activeforeground="#31f75b",
                          font=("Arial", 25),
                          padx=30,
                          pady=10,
                          text="✔",
-                         command="",)
+                         command=lambda:print("pass"),)
+    pass_button.bind("<Enter>", func=lambda e: on_button_hover(pass_button))
+    pass_button.bind("<Leave>", func=lambda e: on_button_hover(pass_button))
     pass_button.pack()
+
+def on_button_hover(button) -> None:
+    button.bind("<Enter>", func=lambda e: button.config(bg=HOVER_COLOR))
+    button.bind("<Leave>", func=lambda e: button.config(bg=OPTION_COLOR))
 
 if __name__ == "__main__":
     app()
