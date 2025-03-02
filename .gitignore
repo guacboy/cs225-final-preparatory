@@ -3,3 +3,6 @@ venv/**
 
 # ignore ALL log files
 *.log
+
+# ignores caches
+__pycache__/**
