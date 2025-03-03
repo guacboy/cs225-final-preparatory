@@ -2,6 +2,7 @@ from questions import *
 
 from tkinter import *
 import random
+import json
 
 BG_COLOR = "#222222"
 OPTION_COLOR = "#2c2c2c"
@@ -11,7 +12,7 @@ root = Tk()
 root.geometry("600x600")
 root.config(bg=BG_COLOR)
 
-problem_chosen = None
+current_question_chosen = None
 
 # app GUI
 def app() -> None:
@@ -71,75 +72,94 @@ def app() -> None:
         button.bind("<Leave>", func=lambda e: button.config(bg=OPTION_COLOR))
   
 def next_question(option: str=None) -> None:
-    global problem_chosen
+    global current_question_chosen
+    
+    # opens the data file
+    with open("data.json", "r") as file:
+        data = json.load(file)
     
     # if there are any questions marked wrong
-    if len(questions_mark_wrong) > 0:
-        for question in questions_mark_wrong:
-            question_data = questions_mark_wrong[question]
-            # subtract the countdown
-            question_data["count"] -= 1
+    if len(data["questions_mark_wrong"]) > 0:
+        for question in data["questions_mark_wrong"]:
+            print()
+            # subtracts the countdown
+            question["count"] -= 1
             # if countdown is zero
-            if question_data["count"] <= 0:
+            if question["count"] <= 0:
+                question_index = data["questions_mark_wrong"].index(question)
                 # add the question back into rotation
-                questions_in_rotation.append(question_data["problem"])
-                del questions_mark_wrong[question]
-                break
+                data["questions_in_rotation"].append(data["questions_mark_wrong"][question_index]["question"])
+                data["questions_mark_wrong"].remove(question)
     
     # if you fail the question
     if option == "fail":
         # set the counter to 5
-        questions_mark_wrong[str(problem_chosen)] = {
-            "problem": problem_chosen,
+        # (when the counter is zero, the question will be back in rotation)
+        data["questions_mark_wrong"].append({
+            "question": current_question_chosen,
             "count": 5
-        }
+        })
         
-        # TODO: find all the questions marked with the same sub-topic
-        # and randomly add one to the questions in rotation
-    
-    # clears any potential topics to be chosen
-    topics_to_be_chosen.clear()
-    
-    # list of the total number of questions
-    all_question_count = [
-        count for count in topic_count.values()
+        topic = current_question_chosen[0]
+        set = current_question_chosen[1]
+        question = current_question_chosen[2]
+        subtopic_marked_wrong = current_question_chosen[3]
+        
+        # chooses a random subtopic based on wrong question
+        subtopics_to_be_chosen = [
+            subtopic for subtopic in question_bank[topic][set]
+            if subtopic[1] == subtopic_marked_wrong and subtopic[0] != question
+        ]
+        subtopic_chosen = list(random.choice(subtopics_to_be_chosen))
+
+        # adds the question into the rotation
+        data["questions_in_rotation"].append([topic] + [set] + subtopic_chosen)
+        
+    # list of amount of times a topic has appeared
+    all_topic_count = [
+        count for count in data["topic_count"].values()
     ]
-    for topic, count in topic_count.items():
-        # if a specific topic is not appearing enough,
-        # add it to the potential topics to be chosen
-        if count <= min(all_question_count) + 1:
-            topics_to_be_chosen.append(topic)
-    
+    # if a specific topic is not appearing enough,
+    # add it to the potential topics to be chosen
+    topics_to_be_chosen = [
+        topic for topic, count in data["topic_count"].items() if count <= min(all_topic_count) + 1
+    ]
     # chooses a random topic
     topic_chosen = random.choice(topics_to_be_chosen)
-    # increase the number of times the problem has been chosen
+    # increase the number of times the topic has been chosen
     # (higher number means less chance of being picked)
-    topic_count[topic_chosen] += 1
-    # chooses a random problem set from the topic chosen
-    set_chosen = random.choice(question_bank[topic_chosen])
+    data["topic_count"][topic_chosen] += 1
+        
+    # chooses a random set from the topic chosen
+    sets_to_be_chosen = [
+        set for set in question_bank[topic_chosen].keys()
+    ]
+    set_chosen = random.choice(sets_to_be_chosen)
     
-    for set, question in set_chosen.items():
-        # chooses a random question from the problem set
-        set_and_question = [set, random.choice(question)]
-        questions_in_rotation.append(set_and_question)
+    # chooses a random question from the set and topic chosen
+    questions_to_be_chosen = [
+        question for question in question_bank[topic_chosen][set_chosen]
+    ]
+    question_chosen = list(random.choice(questions_to_be_chosen))
+    # adds the question chosen to be in rotation
+    data["questions_in_rotation"].append([topic_chosen] + [set_chosen] + question_chosen)
     
-    # chooses a random question from the list of
-    # current questions in rotation
-    problem_chosen = random.choice(questions_in_rotation)
+    # chooses a random question from the list of questions in rotation
+    current_question_chosen = random.choice(data["questions_in_rotation"])
     
-    set_label = problem_chosen[0]
-    problem_label = problem_chosen[1]
-    
-    questions_in_rotation.remove(problem_chosen)
+    set_label = current_question_chosen[1]
+    number_label = current_question_chosen[2]
     
     # updates the current question display
     problem_set_label.config(text=set_label)
-    problem_number_label.config(text=list(problem_label))
+    problem_number_label.config(text=number_label)
     
-    print("Questions marked wrong:", questions_mark_wrong)
-    print("Questions in rotation:", questions_in_rotation)
-    print("Amount of times topic has appeared:", topic_count)
-    print("=====================================")
+    # removes the question from rotation
+    data["questions_in_rotation"].remove(current_question_chosen)
+    
+    # updates the data file
+    with open("data.json", "w") as file:
+        file.write(json.dumps(data, indent=4))
 
 if __name__ == "__main__":
     app()
