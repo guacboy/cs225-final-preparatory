@@ -12,12 +12,11 @@ root = Tk()
 root.geometry("600x600")
 root.config(bg=BG_COLOR)
 
-current_question_chosen = None
-
 # app GUI
 def app() -> None:
     global problem_set_label
     global problem_number_label
+    global choice_frame
     
     problem_frame = Frame(root,
                           bg=BG_COLOR,)
@@ -38,7 +37,7 @@ def app() -> None:
                          bg=BG_COLOR,
                          cursor="")
     choice_frame.pack(side=BOTTOM,
-                      pady=(0, 50))
+                      pady=(0, 40))
     fail_button = Button(choice_frame,
                          bg=OPTION_COLOR,
                          fg="#d02121",
@@ -52,7 +51,21 @@ def app() -> None:
     fail_button.bind("<Enter>", func=lambda e: on_button_hover(fail_button))
     fail_button.bind("<Leave>", func=lambda e: on_button_hover(fail_button))
     fail_button.pack(side=LEFT,
-                     padx=(0, 50))
+                     padx=(0, 40))
+    skip_button = Button(choice_frame,
+                         bg=OPTION_COLOR,
+                         fg="#eef1fa",
+                         activebackground=HOVER_COLOR,
+                         activeforeground="#eef1fa",
+                         font=("Arial", 25),
+                         padx=30,
+                         pady=10,
+                         text="➤",
+                         command=lambda: next_question("skip"),)
+    skip_button.bind("<Enter>", func=lambda e: on_button_hover(skip_button))
+    skip_button.bind("<Leave>", func=lambda e: on_button_hover(skip_button))
+    skip_button.pack(side=LEFT,
+                     padx=(0, 40))
     pass_button = Button(choice_frame,
                          bg=OPTION_COLOR,
                          fg="#31f75b",
@@ -72,7 +85,50 @@ def app() -> None:
         button.bind("<Leave>", func=lambda e: button.config(bg=OPTION_COLOR))
   
 def next_question(option: str=None) -> None:
+    global question_count
     global current_question_chosen
+    
+    if question_count >= 10:
+        # resets the question count
+        question_count = 0
+        
+        # disables the choice buttons
+        for choice in choice_frame.winfo_children():
+            try:
+                choice.config(state="disabled")
+            except TclError:
+                pass
+        
+        break_frame = Frame(root)
+        break_frame.place(relx=0.22,
+                          rely=0.20)
+        take_break_label = Label(break_frame,
+                                 text="BREAK TIME :)",
+                                 font=("Arial", 25))
+        take_break_label.pack(pady=(25,0))
+        continue_button = Button(break_frame,
+                                 text="CONTINUE",
+                                 font=("Arial", 15),
+                                 command=lambda: resume_study())
+        continue_button.pack(side=BOTTOM,
+                             pady=(0,15))
+        break_BG = Label(break_frame,
+                         width=50,
+                         height=10)
+        break_BG.pack()
+        
+        def resume_study() -> None:
+            # enables the choice buttons
+            for choice in choice_frame.winfo_children():
+                try:
+                    choice.config(state="active")
+                except TclError:
+                    pass
+                
+            break_frame.place_forget()
+    
+    if option != "skip":
+        question_count += 1
     
     # opens the data file
     with open("data.json", "r") as file:
@@ -128,7 +184,8 @@ def next_question(option: str=None) -> None:
     topic_chosen = random.choice(topics_to_be_chosen)
     # increase the number of times the topic has been chosen
     # (higher number means less chance of being picked)
-    data["topic_count"][topic_chosen] += 1
+    if option != "skip":
+        data["topic_count"][topic_chosen] += 1
         
     # chooses a random set from the topic chosen
     sets_to_be_chosen = [
@@ -162,6 +219,9 @@ def next_question(option: str=None) -> None:
         file.write(json.dumps(data, indent=4))
 
 if __name__ == "__main__":
+    # resets the question count
+    question_count = 10
+    
     app()
     next_question()
     root.mainloop()
