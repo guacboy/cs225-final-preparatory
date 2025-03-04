@@ -2,7 +2,12 @@
     "questions_in_rotation": [],
     "questions_mark_wrong": [],
     "topic_count": {
+        "non-inductive proof": 0,
+        "set theory": 0,
         "inductive proof": 0,
-        "non-inductive proof": 0
+        "recursive definition": 0,
+        "counting rules": 0,
+        "permutations and combinations": 0,
+        "graph theory": 0
     }
 }
