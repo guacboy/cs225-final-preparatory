@@ -226,6 +226,18 @@ if __name__ == "__main__":
     # resets the question count
     question_count = 0
     
+    # opens the data file
+    with open("data.json", "r") as file:
+        data = json.load(file)
+    
+    # resets topic count
+    for topic in data["topic_count"]:
+        data["topic_count"][topic] = 0
+    
+    # updates the data file
+    with open("data.json", "w") as file:
+        file.write(json.dumps(data, indent=4))
+    
     app()
     next_question()
     root.mainloop()
