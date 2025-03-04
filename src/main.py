@@ -224,7 +224,11 @@ def next_question(option: str=None) -> None:
 
 if __name__ == "__main__":
     # resets the question count
-    question_count = 0
+    question_count = 10
+    
+    app()
+    next_question()
+    root.mainloop()
     
     # opens the data file
     with open("data.json", "r") as file:
@@ -237,7 +241,3 @@ if __name__ == "__main__":
     # updates the data file
     with open("data.json", "w") as file:
         file.write(json.dumps(data, indent=4))
-    
-    app()
-    next_question()
-    root.mainloop()
