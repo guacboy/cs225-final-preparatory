@@ -88,7 +88,10 @@ def next_question(option: str=None) -> None:
     global question_count
     global current_question_chosen
     
-    if question_count >= 10:
+    if option != "skip":
+        question_count += 1
+    
+    if question_count > 10:
         # resets the question count
         question_count = 0
         
@@ -126,9 +129,6 @@ def next_question(option: str=None) -> None:
                     pass
                 
             break_frame.place_forget()
-    
-    if option != "skip":
-        question_count += 1
     
     # opens the data file
     with open("data.json", "r") as file:
@@ -224,7 +224,7 @@ def next_question(option: str=None) -> None:
 
 if __name__ == "__main__":
     # resets the question count
-    question_count = 10
+    question_count = 0
     
     app()
     next_question()
