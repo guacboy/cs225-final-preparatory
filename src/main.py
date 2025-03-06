@@ -116,15 +116,15 @@ def prepare_json() -> None:
         file.write(json.dumps(data, indent=4))
 
 def next_question(option: str=None) -> None:
-    global question_count
+    global amount_of_questions_done_count
     global current_question_chosen
     
     if option != "skip":
-        question_count += 1
+        amount_of_questions_done_count += 1
     
-    if question_count > 10:
-        # resets the question count
-        question_count = 0
+    if amount_of_questions_done_count > 10:
+        # resets the amount of questions done
+        amount_of_questions_done_count = 0
         
         # disables the choice buttons
         for choice in choice_frame.winfo_children():
@@ -280,8 +280,8 @@ def next_question(option: str=None) -> None:
         file.write(json.dumps(data, indent=4))
 
 if __name__ == "__main__":
-    # resets the question count
-    question_count = 0
+    # initial amount of questions done
+    amount_of_questions_done_count = 0
     
     app()
     prepare_json()
