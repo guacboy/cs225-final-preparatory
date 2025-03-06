@@ -227,6 +227,7 @@ def next_question(option: str=None) -> None:
         # add it to the potential set to be chosen
         sets_to_be_chosen = []
         for set in question_bank[topic_chosen]:
+            set_count = data["topic_count"][topic_chosen]["set"][set]["count"]
             if set_count <= min(all_set_count):
                 sets_to_be_chosen.append(set)
         # chooses a random set from the topic chosen
@@ -241,14 +242,13 @@ def next_question(option: str=None) -> None:
         # add it to the potential set to be chosen
         questions_to_be_chosen = []
         for question in question_bank[topic_chosen][set_chosen]:
+            question_count = data["topic_count"][topic_chosen]["set"][set_chosen]["count"]
             if question_count <= min(all_set_count):
                 questions_to_be_chosen.append(question)
         # chooses a random question from the set and topic chosen
         question_chosen = list(random.choice(questions_to_be_chosen))
         # adds the question chosen to be in rotation
         data["questions_in_rotation"].append([topic_chosen] + [set_chosen] + question_chosen)
-        
-        #FIXME: indexerror: cannot choose from an empty sequence
         
     # increase the number of times
     # the topic, set, and question have been chosen
