@@ -12,8 +12,11 @@ root = Tk()
 root.geometry("600x600")
 root.config(bg=BG_COLOR)
 
-# app GUI
 def app() -> None:
+    """
+    Main GUI
+    """
+    
     global problem_set_label
     global problem_number_label
     global choice_frame
@@ -85,44 +88,119 @@ def app() -> None:
         button.bind("<Leave>", func=lambda e: button.config(bg=OPTION_COLOR))
 
 def prepare_json() -> None:
+    """
+    Populates the data.json file
+    """
+    
     # opens the data file
     with open("data.json", "r") as file:
         data = json.load(file)
     
     for topic in question_bank:
         # adds topics from question bank
-        data["topic_count"][topic] = {
-            "count": 0,
-            "set": {}
-        }
+        data["topic_count"][topic] = {}
         for set in question_bank[topic].keys():
             # adds sets from question bank
-            data["topic_count"][topic]["set"].update({
-                set: {
-                    "count": 0,
-                    "question": {}
-                }
+            data["topic_count"][topic].update({
+                set: {}
             })
             # adds questions from question bank
             for question in question_bank[topic][set]:
-                data["topic_count"][topic]["set"][set]["question"].update({
-                    question[0]: {
-                        "count": 0
-                    }
+                data["topic_count"][topic][set].update({
+                    question[0]: 0
                 })
     
     # updates the data file
     with open("data.json", "w") as file:
         file.write(json.dumps(data, indent=4))
 
+def add_questions_to_rotation() -> None:
+    """
+    Adds question to rotation in a sorted order
+    for each subtopic and based on the amount
+    of times the question has been selected
+    """
+    
+    # opens the data file
+    with open("data.json", "r") as file:
+        data = json.load(file)
+    
+    sorted_questions = []
+    for topic in question_bank:
+        for set in question_bank[topic]:
+            for question in question_bank[topic][set]:
+                question_count = data["topic_count"][topic][set][question[0]]
+                # [set, question, subtopic, question count]
+                sorted_questions.append([topic] + [set] + list(question) + [question_count])
+    # sorts list by subtopic (in alphabetical order)
+    sorted_questions.sort(key=lambda x: x[3])
+
+    questions_with_same_subtopic = []
+    for question in sorted_questions:
+        # if the list is not empty
+        if len(questions_with_same_subtopic) > 0:
+            # if the current question's subtopic does not
+            # match the targeted subtopic
+            if question[3] != subtopic:
+                # collects all the question counts
+                all_question_count = [
+                    count[4] for count in questions_with_same_subtopic
+                ]
+                # sorts the list to questions that have
+                # not been selected recently
+                question_to_be_chosen = [
+                    q for q in questions_with_same_subtopic
+                    if question[4] <= min(all_question_count)
+                ]
+                
+                # FIXME: indexerror: cannot choose from an empty sequence
+                
+                # chooses a random question
+                question_chosen = random.choice(question_to_be_chosen)
+                # and adds it to the rotation
+                data["questions_in_rotation"].append(question_chosen)
+                
+                # increase the number of times
+                # the topic, set, and question have been chosen
+                # (higher number means less chance of being picked)
+                topic_idx = question_chosen[0]
+                set_idx = question_chosen[1]
+                question_idx = question_chosen[2]
+                data["topic_count"][topic_idx][set_idx][question_idx] += 1
+                
+                # clears for next subtopic list
+                questions_with_same_subtopic.clear()
+        
+        # if the list is empty
+        # (or it's the first question to be added)
+        if len(questions_with_same_subtopic) <= 0:
+            # assign the targeted subtopic
+            subtopic = question[3]
+        
+        # if question's subtopic matches with targeted subtopic
+        # and it's not in the list yet
+        if (question[3] == subtopic
+            and question not in questions_with_same_subtopic):
+            # add the question to the list
+            questions_with_same_subtopic.append(question)
+    
+    # updates the data file
+    with open("data.json", "w") as file:
+        file.write(json.dumps(data, indent=4))
+    print("============")
+
 def next_question(option: str=None) -> None:
+    """
+    Iterates to the next question in rotation
+    """
+    
     global amount_of_questions_done_count
     global current_question_chosen
     
     if option != "skip":
         amount_of_questions_done_count += 1
     
-    if amount_of_questions_done_count > 10:
+    if amount_of_questions_done_count > 5:
         # resets the amount of questions done
         amount_of_questions_done_count = 0
         
@@ -168,7 +246,6 @@ def next_question(option: str=None) -> None:
     # if there are any questions marked wrong
     if len(data["questions_mark_wrong"]) > 0:
         for question in data["questions_mark_wrong"]:
-            print()
             # subtracts the countdown
             question["count"] -= 1
             # if countdown is zero
@@ -180,87 +257,34 @@ def next_question(option: str=None) -> None:
     
     # if you fail the question
     if option == "fail":
-        # set the counter to 5
+        # set the counter
         # (when the counter is zero, the question will be back in rotation)
         data["questions_mark_wrong"].append({
             "question": current_question_chosen,
-            "count": 5
+            "count": 3
         })
         
-        topic = current_question_chosen[0]
-        set = current_question_chosen[1]
-        question = current_question_chosen[2]
-        subtopic_marked_wrong = current_question_chosen[3]
+        # topic = current_question_chosen[0]
+        # set = current_question_chosen[1]
+        # question = current_question_chosen[2]
+        # subtopic_marked_wrong = current_question_chosen[3]
         
-        # chooses a random subtopic based on wrong question
-        subtopics_to_be_chosen = [
-            subtopic for subtopic in question_bank[topic][set]
-            if subtopic[1] == subtopic_marked_wrong and subtopic[0] != question
-        ]
-        # if there are other questions similar
-        if len(subtopics_to_be_chosen) > 0:
-            subtopic_chosen = list(random.choice(subtopics_to_be_chosen))
+        # # chooses a random subtopic based on wrong question
+        # subtopics_to_be_chosen = [
+        #     subtopic for subtopic in question_bank[topic][set]
+        #     if subtopic[1] == subtopic_marked_wrong and subtopic[0] != question
+        # ]
+        # # if there are other questions similar
+        # if len(subtopics_to_be_chosen) > 0:
+        #     subtopic_chosen = list(random.choice(subtopics_to_be_chosen))
 
-            # adds the question into the rotation
-            data["questions_in_rotation"].append([topic] + [set] + subtopic_chosen)
+        #     # adds the question into the rotation
+        #     data["questions_in_rotation"].append([topic] + [set] + subtopic_chosen)
+        # # TODO: look at the entire topic rather than just the set
     
-    # if there are less than three questions in rotation
-    if len(data["questions_in_rotation"]) < 3:
-        # list of amount of times a topic has appeared
-        all_topic_count = [
-            data["topic_count"][topic]["count"] for topic in data["topic_count"]
-        ]
-        # if a specific topic is not appearing enough,
-        # add it to the potential topics to be chosen
-        topics_to_be_chosen = [
-            topic for topic in question_bank if data["topic_count"][topic]["count"] <= min(all_topic_count)
-        ]
-        # chooses a random topic
-        topic_chosen = random.choice(topics_to_be_chosen)
-        
-        # list of amount of times a set has appeared
-        all_set_count = []
-        for set in data["topic_count"][topic_chosen]["set"]:
-            set_count = data["topic_count"][topic_chosen]["set"][set]["count"]
-            all_set_count.append(set_count)
-        # if a specific set is not appearing enough,
-        # add it to the potential set to be chosen
-        sets_to_be_chosen = []
-        for set in question_bank[topic_chosen]:
-            set_count = data["topic_count"][topic_chosen]["set"][set]["count"]
-            if set_count <= min(all_set_count):
-                sets_to_be_chosen.append(set)
-        # chooses a random set from the topic chosen
-        set_chosen = random.choice(sets_to_be_chosen)
-        
-        # list of amount of times a question has appeared
-        all_questions_count = []
-        for question in data["topic_count"][topic_chosen]["set"][set_chosen]["question"]:
-            question_count = data["topic_count"][topic_chosen]["set"][set_chosen]["count"]
-            all_questions_count.append(question_count)
-        # if a specific question is not appearing enough,
-        # add it to the potential set to be chosen
-        questions_to_be_chosen = []
-        for question in question_bank[topic_chosen][set_chosen]:
-            question_count = data["topic_count"][topic_chosen]["set"][set_chosen]["count"]
-            if question_count <= min(all_set_count):
-                questions_to_be_chosen.append(question)
-        # chooses a random question from the set and topic chosen
-        question_chosen = list(random.choice(questions_to_be_chosen))
-        # adds the question chosen to be in rotation
-        data["questions_in_rotation"].append([topic_chosen] + [set_chosen] + question_chosen)
-        
-    # increase the number of times
-    # the topic, set, and question have been chosen
-    # (higher number means less chance of being picked)
-    if option != "skip":
-        # topic
-        data["topic_count"][topic_chosen]["count"] += 1
-        # set
-        data["topic_count"][topic_chosen]["set"][set_chosen]["count"] += 1
-        # question
-        data["topic_count"][topic_chosen]["set"][set_chosen]["question"][question_chosen[0]]["count"] += 1
-            
+    # adds new questions to rotation
+    if len(data["questions_in_rotation"]) <= 0:
+        add_questions_to_rotation()
     
     # chooses a random question from the list of questions in rotation
     current_question_chosen = random.choice(data["questions_in_rotation"])
@@ -285,6 +309,7 @@ if __name__ == "__main__":
     
     app()
     prepare_json()
+    add_questions_to_rotation()
     next_question()
     root.mainloop()
     
