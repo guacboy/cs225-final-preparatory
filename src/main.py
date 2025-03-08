@@ -228,23 +228,39 @@ def next_question(option: str=None) -> None:
             "count": 3
         })
         
-        # topic = current_question_chosen[0]
-        # set = current_question_chosen[1]
-        # question = current_question_chosen[2]
-        # subtopic_marked_wrong = current_question_chosen[3]
+        # adds a question (that is not the same as the current question)
+        # of the same subtopic into rotation
+        topic_chosen = current_question_chosen[0]
+        subtopic_marked_wrong = current_question_chosen[3]
         
-        # # chooses a random subtopic based on wrong question
-        # subtopics_to_be_chosen = [
-        #     subtopic for subtopic in question_bank[topic][set]
-        #     if subtopic[1] == subtopic_marked_wrong and subtopic[0] != question
-        # ]
-        # # if there are other questions similar
-        # if len(subtopics_to_be_chosen) > 0:
-        #     subtopic_chosen = list(random.choice(subtopics_to_be_chosen))
+        # populates list of questions with the same subtopic marked wrong
+        questions_with_same_subtopic = []
+        for set in question_bank[topic_chosen]:
+            for question in question_bank[topic_chosen][set]:
+                subtopic = question[1]
+                if subtopic_marked_wrong == subtopic:
+                    question_count = data["topic_count"][topic_chosen][set][question[0]]
+                    # [set, question, subtopic, question count]
+                    questions_with_same_subtopic.append([topic_chosen] + [set] + list(question) + [question_count])
 
-        #     # adds the question into the rotation
-        #     data["questions_in_rotation"].append([topic] + [set] + subtopic_chosen)
-        # # TODO: look at the entire topic rather than just the set
+        # collects all the question counts
+        all_subtopics_count = [
+            count[4] for count in questions_with_same_subtopic
+        ]
+        # sorts the list to questions that have
+        # not been selected recently
+        # and are not the same as the question marked wrong
+        subtopics_to_be_chosen = [
+            q for q in questions_with_same_subtopic
+            if q[4] <= min(all_subtopics_count) and q != current_question_chosen
+        ]
+        
+        # if there are other questions available
+        if len(subtopics_to_be_chosen) > 0:
+            # chooses a random question of the related subtopic
+            question_chosen = random.choice(subtopics_to_be_chosen)
+            # and adds it to the rotation
+            data["questions_in_rotation"].append(question_chosen)
     
     # adds new questions to rotation
     if len(data["questions_in_rotation"]) <= 0:
