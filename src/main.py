@@ -150,10 +150,8 @@ def add_questions_to_rotation() -> None:
                 # not been selected recently
                 question_to_be_chosen = [
                     q for q in questions_with_same_subtopic
-                    if question[4] <= min(all_question_count)
+                    if q[4] <= min(all_question_count)
                 ]
-                
-                # FIXME: indexerror: cannot choose from an empty sequence
                 
                 # chooses a random question
                 question_chosen = random.choice(question_to_be_chosen)
@@ -187,7 +185,6 @@ def add_questions_to_rotation() -> None:
     # updates the data file
     with open("data.json", "w") as file:
         file.write(json.dumps(data, indent=4))
-    print("============")
 
 def next_question(option: str=None) -> None:
     """
@@ -204,40 +201,7 @@ def next_question(option: str=None) -> None:
         # resets the amount of questions done
         amount_of_questions_done_count = 0
         
-        # disables the choice buttons
-        for choice in choice_frame.winfo_children():
-            try:
-                choice.config(state="disabled")
-            except TclError:
-                pass
-        
-        break_frame = Frame(root)
-        break_frame.place(relx=0.22,
-                          rely=0.20)
-        take_break_label = Label(break_frame,
-                                 text="BREAK TIME :)",
-                                 font=("Arial", 25))
-        take_break_label.pack(pady=(25,0))
-        continue_button = Button(break_frame,
-                                 text="CONTINUE",
-                                 font=("Arial", 15),
-                                 command=lambda: resume_study())
-        continue_button.pack(side=BOTTOM,
-                             pady=(0,15))
-        break_BG = Label(break_frame,
-                         width=50,
-                         height=10)
-        break_BG.pack()
-        
-        def resume_study() -> None:
-            # enables the choice buttons
-            for choice in choice_frame.winfo_children():
-                try:
-                    choice.config(state="active")
-                except TclError:
-                    pass
-                
-            break_frame.place_forget()
+        break_time()
     
     # opens the data file
     with open("data.json", "r") as file:
@@ -286,22 +250,72 @@ def next_question(option: str=None) -> None:
     if len(data["questions_in_rotation"]) <= 0:
         add_questions_to_rotation()
     
-    # chooses a random question from the list of questions in rotation
-    current_question_chosen = random.choice(data["questions_in_rotation"])
-    
-    set_label = current_question_chosen[1]
-    number_label = current_question_chosen[2]
-    
-    # updates the current question display
-    problem_set_label.config(text=set_label)
-    problem_number_label.config(text=number_label)
-    
-    # removes the question from rotation
-    data["questions_in_rotation"].remove(current_question_chosen)
-    
+    try:
+        # chooses a random question from the list of questions in rotation
+        current_question_chosen = random.choice(data["questions_in_rotation"])
+        
+        set_label = current_question_chosen[1]
+        number_label = current_question_chosen[2]
+        
+        # updates the current question display
+        problem_set_label.config(text=set_label)
+        problem_number_label.config(text=number_label)
+        
+        # removes the question from rotation
+        data["questions_in_rotation"].remove(current_question_chosen)
+    except IndexError:
+        break_time(True)
+        return
+        
     # updates the data file
     with open("data.json", "w") as file:
         file.write(json.dumps(data, indent=4))
+
+def break_time(is_rotation_done: bool=False) -> None:
+    """
+    Displays the break screen
+    """
+    
+    # disables the choice buttons
+    for choice in choice_frame.winfo_children():
+        try:
+            choice.config(state="disabled")
+        except TclError:
+            pass
+    
+    break_frame = Frame(root)
+    break_frame.place(relx=0.22,
+                    rely=0.20)
+    take_break_label = Label(break_frame,
+                            text="BREAK TIME :)",
+                            font=("Arial", 25))
+    take_break_label.pack(pady=(25,0))
+    continue_button = Button(break_frame,
+                            text="CONTINUE",
+                            font=("Arial", 15),
+                            command=lambda: resume_study())
+    continue_button.pack(side=BOTTOM,
+                        pady=(0,15))
+    break_BG = Label(break_frame,
+                    width=50,
+                    height=10)
+    break_BG.pack()
+    
+    # if all questions in rotation have been completed
+    if is_rotation_done:
+        take_break_label.config(text="ROTATION DONE\nGOOD JOB :)")
+        continue_button.config(text="NEXT ROTATION",
+                               command=lambda: [resume_study(), next_question()])
+    
+    def resume_study() -> None:
+        # enables the choice buttons
+        for choice in choice_frame.winfo_children():
+            try:
+                choice.config(state="active")
+            except TclError:
+                pass
+
+        break_frame.destroy()
 
 if __name__ == "__main__":
     # initial amount of questions done
