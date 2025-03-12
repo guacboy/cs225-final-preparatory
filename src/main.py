@@ -110,7 +110,7 @@ def prepare_json() -> None:
                 })
             for question in question_bank[topic][set]:
                 # if set has not been added
-                if question not in data["topic_count"][topic][set]:
+                if question[0] not in data["topic_count"][topic][set]:
                     # adds questions from question bank
                     data["topic_count"][topic][set].update({
                         question[0]: 0
