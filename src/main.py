@@ -97,18 +97,24 @@ def prepare_json() -> None:
         data = json.load(file)
     
     for topic in question_bank:
-        # adds topics from question bank
-        data["topic_count"][topic] = {}
+        # if topic has not been added
+        if topic not in data["topic_count"]:
+            # adds topics from question bank
+            data["topic_count"][topic] = {}
         for set in question_bank[topic].keys():
-            # adds sets from question bank
-            data["topic_count"][topic].update({
-                set: {}
-            })
-            # adds questions from question bank
-            for question in question_bank[topic][set]:
-                data["topic_count"][topic][set].update({
-                    question[0]: 0
+            # if set has not been added
+            if set not in data["topic_count"][topic]:
+                # adds sets from question bank
+                data["topic_count"][topic].update({
+                    set: {}
                 })
+            for question in question_bank[topic][set]:
+                # if set has not been added
+                if question not in data["topic_count"][topic][set]:
+                    # adds questions from question bank
+                    data["topic_count"][topic][set].update({
+                        question[0]: 0
+                    })
     
     # updates the data file
     with open("data.json", "w") as file:
@@ -191,21 +197,18 @@ def next_question(option: str=None) -> None:
     Iterates to the next question in rotation
     """
     
-    global amount_of_questions_done_count
-    global current_question_chosen
-    
-    if option != "skip":
-        amount_of_questions_done_count += 1
-    
-    if amount_of_questions_done_count > 5:
-        # resets the amount of questions done
-        amount_of_questions_done_count = 0
-        
-        break_time()
-    
     # opens the data file
     with open("data.json", "r") as file:
         data = json.load(file)
+    
+    if option != "skip":
+        data["amount_of_questions_done_count"] += 1
+    
+    if data["amount_of_questions_done_count"] > 5:
+        # resets the amount of questions done
+        data["amount_of_questions_done_count"] = 0
+        
+        break_time()
     
     # if there are any questions marked wrong
     if len(data["questions_mark_wrong"]) > 0:
@@ -224,14 +227,14 @@ def next_question(option: str=None) -> None:
         # set the counter
         # (when the counter is zero, the question will be back in rotation)
         data["questions_mark_wrong"].append({
-            "question": current_question_chosen,
+            "question": data["current_question"],
             "count": 3
         })
         
         # adds a question (that is not the same as the current question)
         # of the same subtopic into rotation
-        topic_chosen = current_question_chosen[0]
-        subtopic_marked_wrong = current_question_chosen[3]
+        topic_chosen = data["current_question"][0]
+        subtopic_marked_wrong = data["current_question"][3]
         
         # populates list of questions with the same subtopic marked wrong
         questions_with_same_subtopic = []
@@ -252,7 +255,7 @@ def next_question(option: str=None) -> None:
         # and are not the same as the question marked wrong
         subtopics_to_be_chosen = [
             q for q in questions_with_same_subtopic
-            if q[4] <= min(all_subtopics_count) and q != current_question_chosen
+            if q[4] <= min(all_subtopics_count) and q != data["current_question"]
         ]
         
         # if there are other questions available
@@ -268,17 +271,12 @@ def next_question(option: str=None) -> None:
     
     try:
         # chooses a random question from the list of questions in rotation
-        current_question_chosen = random.choice(data["questions_in_rotation"])
+        data["current_question"] = random.choice(data["questions_in_rotation"])
         
-        set_label = current_question_chosen[1]
-        number_label = current_question_chosen[2]
-        
-        # updates the current question display
-        problem_set_label.config(text=set_label)
-        problem_number_label.config(text=number_label)
+        update_question_labels(data["current_question"])
         
         # removes the question from rotation
-        data["questions_in_rotation"].remove(current_question_chosen)
+        data["questions_in_rotation"].remove(data["current_question"])
     except IndexError:
         break_time(True)
         return
@@ -286,6 +284,19 @@ def next_question(option: str=None) -> None:
     # updates the data file
     with open("data.json", "w") as file:
         file.write(json.dumps(data, indent=4))
+
+def update_question_labels(current_question: list) -> None:
+    """
+    Updates the question labels
+    to the current question
+    """
+    
+    set_label = current_question[1]
+    number_label = current_question[2]
+    
+    # updates the current question display
+    problem_set_label.config(text=set_label)
+    problem_number_label.config(text=number_label)
 
 def break_time(is_rotation_done: bool=False) -> None:
     """
@@ -334,24 +345,30 @@ def break_time(is_rotation_done: bool=False) -> None:
         break_frame.destroy()
 
 if __name__ == "__main__":
-    # initial amount of questions done
-    amount_of_questions_done_count = 0
-    
-    app()
-    prepare_json()
-    add_questions_to_rotation()
-    next_question()
-    root.mainloop()
-    
     # opens the data file
     with open("data.json", "r") as file:
         data = json.load(file)
     
-    # resets file
-    data["questions_in_rotation"].clear()
-    data["questions_mark_wrong"].clear()
-    data["topic_count"].clear()
+    app()
+    prepare_json()
     
-    # updates the data file
-    with open("data.json", "w") as file:
-        file.write(json.dumps(data, indent=4))
+    # if this is the first time running
+    if len(data["questions_in_rotation"]) <= 0:
+        add_questions_to_rotation()
+        next_question()
+    # if this is NOT the first time running
+    else:
+        update_question_labels(data["current_question"])
+        
+    root.mainloop()
+    
+    # # resets the file
+    # data["current_question"].clear()
+    # data["amount_of_questions_done_count"] = 0
+    # data["questions_in_rotation"].clear()
+    # data["questions_mark_wrong"].clear()
+    # data["topic_count"].clear()
+    
+    # # updates the data file
+    # with open("data.json", "w") as file:
+    #     file.write(json.dumps(data, indent=4))
