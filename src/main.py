@@ -369,16 +369,16 @@ if __name__ == "__main__":
         next_question()
     # if this is NOT the first time running
     else:
-        # resets the amount of questions done
-        data["amount_of_questions_done_count"] = 0
-        
-        # updates the data file
-        with open("data.json", "w") as file:
-            file.write(json.dumps(data, indent=4))
-        
         update_question_labels(data["current_question"])
         
     root.mainloop()
+    
+    # resets the amount of questions done
+    data["amount_of_questions_done_count"] = 0
+    
+    # updates the data file
+    with open("data.json", "w") as file:
+        file.write(json.dumps(data, indent=4))
     
     # # resets the file
     # data["current_question"].clear()
