@@ -333,6 +333,17 @@ def break_time(is_rotation_done: bool=False) -> None:
         take_break_label.config(text="ROTATION DONE\nGOOD JOB :)")
         continue_button.config(text="NEXT ROTATION",
                                command=lambda: [resume_study(), next_question()])
+        
+        # opens the data file
+        with open("data.json", "r") as file:
+            data = json.load(file)
+        
+        # resets the amount of questions done
+        data["amount_of_questions_done_count"] = 0
+        
+        # updates the data file
+        with open("data.json", "w") as file:
+            file.write(json.dumps(data, indent=4))
     
     def resume_study() -> None:
         # enables the choice buttons
@@ -358,6 +369,13 @@ if __name__ == "__main__":
         next_question()
     # if this is NOT the first time running
     else:
+        # resets the amount of questions done
+        data["amount_of_questions_done_count"] = 0
+        
+        # updates the data file
+        with open("data.json", "w") as file:
+            file.write(json.dumps(data, indent=4))
+        
         update_question_labels(data["current_question"])
         
     root.mainloop()
